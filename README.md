@@ -161,6 +161,17 @@ export ACTUAL_SESSION_TOKEN="your-session-token"
 
 To find the token, sign in to Actual in your browser, open DevTools, and go to **Application → IndexedDB → actual → asyncStorage**. The value of the `user-token` key is your session token. It's a UUID (e.g. `3f2b8c1e-9a4d-4e7b-8c2a-1d5e6f7a8b9c`), not a long JWT-style bearer token. You can check it with `curl -H "X-ACTUAL-TOKEN: <token>" https://your-actual-server.com/account/validate`, which should return `"validated": true`. Treat it like a password: it grants full access to your budgets. How long it stays valid depends on the server's `ACTUAL_TOKEN_EXPIRATION` setting. If it is invalid or expired, the MCP server still starts, but tool calls fail with `Authentication failed: invalid or expired session token`, because the server connects to Actual on the first request (`--test-resources` reports the error immediately). Sign in again, replace the token, and restart the MCP server.
 
+Optional: Actual behind Cloudflare Access
+
+If your Actual server is protected by Cloudflare Access, create a service token (Zero Trust → Access controls → Service credentials → Service tokens) and add a **Service Auth** policy for it to the Access application. Then set:
+
+```bash
+export CF_ACCESS_CLIENT_ID="your-client-id.access"
+export CF_ACCESS_CLIENT_SECRET="your-client-secret"
+```
+
+The server then sends `CF-Access-Client-Id` and `CF-Access-Client-Secret` on every request to `ACTUAL_SERVER_URL`'s origin, and on no other request.
+
 ### Connection lifecycle
 
 The server keeps one shared Actual connection for its entire lifetime and serializes budget operations through it. Downloaded data is re-synced when it exceeds the `ACTUAL_SYNC_TTL_MS` freshness window. In both stdio and HTTP modes, SIGINT and SIGTERM drain in-flight work before the server shuts down. Actual is no longer initialized and shut down for each tool call.
