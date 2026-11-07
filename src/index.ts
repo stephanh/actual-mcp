@@ -19,7 +19,6 @@ import express, { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { isValidBearerToken } from './utils/bearer-auth.js';
-import { missingSessionResponse } from './utils/session-errors.js';
 import { initActualApi, shutdownActualApi } from './actual-api.js';
 import { fetchAllAccounts } from './core/data/fetch-accounts.js';
 import { getActualConnection } from './integrations/actual/connection.js';
@@ -319,8 +318,15 @@ async function main(): Promise<void> {
 
             session = { server: sessionServer, transport: streamableTransport };
           } else {
-            const { status, body } = missingSessionResponse(sessionHeader);
-            res.status(status).json(body);
+            // The spec requires 404 for an unknown session ID, so the client starts a new session
+            // (IDs are lost on every restart). A request without any session ID is still a 400.
+            res.status(sessionHeader ? 404 : 400).json({
+              jsonrpc: '2.0',
+              error: sessionHeader
+                ? { code: -32001, message: 'Session not found' }
+                : { code: -32000, message: 'Bad Request: No valid session ID provided' },
+              id: null,
+            });
             return;
           }
         }
