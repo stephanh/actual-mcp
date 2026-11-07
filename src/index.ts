@@ -318,12 +318,13 @@ async function main(): Promise<void> {
 
             session = { server: sessionServer, transport: streamableTransport };
           } else {
-            res.status(400).json({
+            // The spec requires 404 for an unknown session ID, so the client starts a new session
+            // (IDs are lost on every restart). A request without any session ID is still a 400.
+            res.status(sessionHeader ? 404 : 400).json({
               jsonrpc: '2.0',
-              error: {
-                code: -32000,
-                message: 'Bad Request: No valid session ID provided',
-              },
+              error: sessionHeader
+                ? { code: -32001, message: 'Session not found' }
+                : { code: -32000, message: 'Bad Request: No valid session ID provided' },
               id: null,
             });
             return;
