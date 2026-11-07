@@ -279,6 +279,10 @@ docker run -i --rm \
 > ⚠️ Important: When using --enable-bearer, the BEARER_TOKEN environment variable must be set.  
 > 🔒 This is highly recommended if you're exposing your server via a public URL.
 
+By default the HTTP server listens on all interfaces. Use `--host <address>` (or the
+`ACTUAL_MCP_HOST` environment variable) to pick one, for example `--host 127.0.0.1` when a
+reverse proxy or tunnel on the same machine is the only thing that should reach it.
+
 ## Example Queries
 
 Once connected, you can ask Claude questions like:

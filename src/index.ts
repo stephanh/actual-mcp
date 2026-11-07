@@ -19,6 +19,7 @@ import express, { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { isValidBearerToken } from './utils/bearer-auth.js';
+import { resolveListenHost } from './utils/listen-host.js';
 import { initActualApi, shutdownActualApi } from './actual-api.js';
 import { fetchAllAccounts } from './core/data/fetch-accounts.js';
 import { getActualConnection } from './integrations/actual/connection.js';
@@ -35,6 +36,7 @@ const {
     'enable-write': enableWrite,
     'enable-bearer': enableBearer,
     port,
+    host: hostArg,
     'test-resources': testResources,
     'test-custom': testCustom,
   },
@@ -44,6 +46,7 @@ const {
     'enable-write': { type: 'boolean', default: false },
     'enable-bearer': { type: 'boolean', default: false },
     port: { type: 'string' },
+    host: { type: 'string' },
     'test-resources': { type: 'boolean', default: false },
     'test-custom': { type: 'boolean', default: false },
   },
@@ -51,6 +54,7 @@ const {
 });
 
 const resolvedPort = port ? parseInt(port, 10) : 3000;
+const resolvedHost = resolveListenHost(hostArg, process.env.ACTUAL_MCP_HOST);
 
 // Bearer authentication middleware
 const bearerAuth = (req: Request, res: Response, next: NextFunction): void => {
@@ -357,13 +361,17 @@ async function main(): Promise<void> {
       }
     });
 
-    const httpServer = app.listen(resolvedPort, (error) => {
+    const onListening = (error?: Error): void => {
       if (error) {
         process.stderr.write(`Error: ${toErrorMessage(error)}\n`);
       } else {
-        process.stderr.write(`Actual Budget MCP Server (HTTP) listening on port ${resolvedPort}\n`);
+        const where = resolvedHost ? `${resolvedHost}:${resolvedPort}` : `port ${resolvedPort}`;
+        process.stderr.write(`Actual Budget MCP Server (HTTP) listening on ${where}\n`);
       }
-    });
+    };
+    const httpServer = resolvedHost
+      ? app.listen(resolvedPort, resolvedHost, onListening)
+      : app.listen(resolvedPort, onListening);
 
     const shutdown = async (signal: string): Promise<void> => {
       process.stderr.write(`${signal} received, shutting down server\n`);
