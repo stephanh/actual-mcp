@@ -10,6 +10,8 @@
  * - View transactions with filtering
  * - Generate financial statistics and analysis
  */
+// Reason: must come first, before anything imports '@actual-app/api' (see access-headers.ts).
+import './integrations/actual/install-access-headers.js';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
