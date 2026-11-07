@@ -19,6 +19,7 @@ import express, { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import { isValidBearerToken } from './utils/bearer-auth.js';
+import { missingSessionResponse } from './utils/session-errors.js';
 import { initActualApi, shutdownActualApi } from './actual-api.js';
 import { fetchAllAccounts } from './core/data/fetch-accounts.js';
 import { getActualConnection } from './integrations/actual/connection.js';
@@ -318,14 +319,8 @@ async function main(): Promise<void> {
 
             session = { server: sessionServer, transport: streamableTransport };
           } else {
-            res.status(400).json({
-              jsonrpc: '2.0',
-              error: {
-                code: -32000,
-                message: 'Bad Request: No valid session ID provided',
-              },
-              id: null,
-            });
+            const { status, body } = missingSessionResponse(sessionHeader);
+            res.status(status).json(body);
             return;
           }
         }
